@@ -1,5 +1,5 @@
-import { Rectangle, Circle, Triangle, Brush, Eraser, Text } from '../assets';
-import {RefObject, useEffect, useRef, useState} from 'react'
+import { Rectangle, Circle, Triangle, Brush, Eraser, Text, Upload } from '../assets';
+import { RefObject, useEffect, useRef, useState } from 'react'
 import {
   Canvas,
   TEvent,
@@ -18,8 +18,8 @@ type ObjectSelectedCreatedEvent = Partial<TEvent> & {
 };
 
 const CanvasState = () => {
-  const fabricCanvas : RefObject<null | Canvas> = useRef(null);
-  const bg : RefObject<undefined | FabricImage> = useRef(undefined);
+  const fabricCanvas: RefObject<null | Canvas> = useRef(null);
+  const bg: RefObject<null | FabricImage> = useRef(null);
   const [userInputText, setUserInputText] = useState('');
   const [textSearching, setTextSearching] = useState('');
   const [colorSelect, setColorSelect] = useState('blue');
@@ -66,25 +66,32 @@ const CanvasState = () => {
       fabricCanvas.current = new Canvas("canvas", {
         width: 1575,
         height: 3150,
-        backgroundImage: bg.current,
-        zoom: 0.5,
+        overlayImage: bg.current
       })
-  
+
       fabricCanvas.current.renderAll();
-  
-  
+
       fabricCanvas.current.on({
         'selection:created': objectSelected,
         'selection:updated': objectSelected,
       });
-  
+
       fabricCanvas.current.on('mouse:down', () => {
         setObjectSelectForDelete(false)
       });
+
+      if (fabricCanvas.current.getElement().parentNode) {
+        const parent = fabricCanvas.current.getElement().parentNode as HTMLElement;
+        parent.style.transform = 'scale(0.25)';
+        parent.style.position = 'absolute'
+        parent.style.top = '0px'
+        parent.style.left = '0px'
+        parent.style.transformOrigin = 'top left'
+      }
     };
 
     init();
-    
+
     return () => {
       fabricCanvas.current?.dispose().then(() => console.log('Canvas disposed2222...'))
     }
@@ -162,7 +169,7 @@ const CanvasState = () => {
       {
         editable: true,
         left: (fabricCanvas.current?.width ?? 0 - 50) * Math.random(),
-        top:  (fabricCanvas.current?.height ?? 0 - 50) * Math.random(),
+        top: (fabricCanvas.current?.height ?? 0 - 50) * Math.random(),
         fontSize: 60,
         fill: colorSelect
       }
@@ -227,6 +234,17 @@ const CanvasState = () => {
   // canvas drawing - save as image & download it...
   const saveAsImg = () => {
 
+    if (!fabricCanvas.current) return;
+    if (bg.current != null) {
+      console.log('remove bg');
+      fabricCanvas.current?.remove(bg.current);
+      fabricCanvas.current?.discardActiveObject()
+    }
+    if (bg.current != null) {
+      console.log('remove bg');
+      fabricCanvas.current.overlayImage = undefined;
+      fabricCanvas.current?.discardActiveObject();
+    }
     const ext = "png";
     const base64 = fabricCanvas.current?.toDataURL({
       multiplier: 1,
@@ -284,6 +302,28 @@ const CanvasState = () => {
 
   // }, [textSearching,canvas])
 
+  const uploadFile = () => {
+    const filedom = document.getElementById('file');
+    filedom?.click()
+  }
+
+  const fileinputChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    const fileData = event.target.files ? event.target.files[0] : null;
+    console.log(fileData);
+    // 获取到的文件 fileData
+    // if(fileData){
+    //   this.setState({ fileData, })
+    //   const formdata = new FormData();
+    //   formdata.append("wordType",3);
+    //   formdata.append("file",fileData);
+    //   this.send(formdata)
+    // }
+    console.log("add image");
+    FabricImage.fromURL(URL.createObjectURL(fileData)).then((img) => {
+      fabricCanvas.current?.add(img)
+    })
+  }
+
 
   return (
     <div>
@@ -295,6 +335,7 @@ const CanvasState = () => {
         <Brush className='cursor-pointer duration-200 hover:text-red-500' onClick={drawing} />
         <Eraser className='cursor-pointer duration-200 hover:text-red-500' onClick={eraseDrawing} />
         <Text className='cursor-pointer duration-200 hover:text-red-500' onClick={drawText} />
+        <Upload className='cursor-pointer duration-200 hover:text-red-500' onClick={uploadFile} />
 
         <input
           type="text"
@@ -303,6 +344,11 @@ const CanvasState = () => {
           className='px-2 py-1 outline-none'
           onChange={e => setUserInputText(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && [drawText(), setUserInputText('')]}
+        />
+
+        <input id="file" type="file" accept=".jpg,.png,.jpeg"
+          style={{ display: "none", }}
+          onChange={fileinputChange}
         />
 
         <div className='ml-auto space-x-4'>
@@ -321,8 +367,6 @@ const CanvasState = () => {
         </div>
 
       </div>
-
-
 
       <div className=' flex justify-between items-center'>
         <div className='flex items-center gap-4 my-2'>
@@ -348,9 +392,11 @@ const CanvasState = () => {
         </div>
       </div>
 
-      <canvas id="canvas" />
-    </div>
+      <div className='flex justify-between items-center relative'>
+        <canvas id="canvas" />
+      </div>
 
+    </div>
   )
 }
 
