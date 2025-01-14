@@ -1,5 +1,6 @@
 import { Rectangle, Circle, Triangle, Brush, Eraser, Text, Upload } from '../assets';
 import { RefObject, useEffect, useRef, useState } from 'react'
+import { create } from '../actions'
 import {
   Canvas,
   TEvent,
@@ -10,12 +11,14 @@ import {
   IText,
   PencilBrush,
   FabricImage,
+  ModifiedEvent
 } from "fabric";
 
 
 type ObjectSelectedCreatedEvent = Partial<TEvent> & {
   selected: FabricObject[];
 };
+
 
 const CanvasState = () => {
   const fabricCanvas: RefObject<null | Canvas> = useRef(null);
@@ -24,7 +27,13 @@ const CanvasState = () => {
   const [textSearching, setTextSearching] = useState('');
   const [colorSelect, setColorSelect] = useState('blue');
   const [objectSelectForDelete, setObjectSelectForDelete] = useState(false);
-  const colorList = ['red', 'green', 'blue', 'gray', 'tomato', 'orange']
+  const colorList = ['red', 'green', 'blue', 'gray', 'tomato', 'orange'];
+
+  // const [postImage,]
+  // const [rawImg, setRawImg] = useState<string | null>(null);
+  // const [prdImg, setPrdImg] = useState<string | null>(null);
+
+  // const createWithImg = create.bind(null, FabricImage);
 
   const objectSelected = (o: ObjectSelectedCreatedEvent) => {
     // console.log(o)
@@ -58,6 +67,11 @@ const CanvasState = () => {
     //   setObjectSelectForDelete(false);
     // }
   }
+
+  const objectModified = (o: ModifiedEvent) => {
+    console.log(o)
+  }
+
   useEffect(() => {
     const init = async () => {
       bg.current = await FabricImage.fromURL('/background.png');
@@ -74,6 +88,7 @@ const CanvasState = () => {
       fabricCanvas.current.on({
         'selection:created': objectSelected,
         'selection:updated': objectSelected,
+        'object:modified': objectModified,
       });
 
       fabricCanvas.current.on('mouse:down', () => {
@@ -388,6 +403,7 @@ const CanvasState = () => {
         </div>
 
         <div>
+          {/* <p onClick={saveImgDataToInput} className='bg-gray-400 px-2 py-1 cursor-pointer duration-200 hover:text-gray-100'>save img data</p> */}
           <p onClick={saveAsImg} className='bg-gray-400 px-2 py-1 cursor-pointer duration-200 hover:text-gray-100'>save as img</p>
         </div>
       </div>
